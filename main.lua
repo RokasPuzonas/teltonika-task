@@ -3,6 +3,10 @@
 local ipv4_format = "^%d+%.%d+%.%d+%.%d+$"
 local ipv6_format = "^%x+:%x+:%x+:%x+:%x+:%x+:%x+:%x+$"
 
+---Splits up a IPv4 or IPv6 address into sections.
+---Note: assumes that the given address is in a correct IPv4 or IPv6 format
+---@param address string
+---@return table
 local function splitAddress(address)
 	local sections = {}
 
@@ -46,6 +50,11 @@ local function splitAddress(address)
 	return sections
 end
 
+---Counts the number of address between `address1` and `address2`
+---Note: assumes that both are addressess are in a correct IPv4 or IPv6 format
+---@param address1 string lower address
+---@param address2 string higher address
+---@return number
 local function countAddressesBetween(address1, address2)
 	local parts1 = splitAddress(address1)
 	local parts2 = splitAddress(address2)
@@ -79,7 +88,7 @@ end
 
 local address1, address2 = ...
 if not (address1 and address2) then
-	print("Usage: ./main.lua <adress> <adress>")
+	print("Usage: ./main.lua <address> <address>")
 	os.exit(1)
 end
 
