@@ -1,26 +1,67 @@
 #!/bin/lua
 
-local ipv4_format = "^(%d+)%.(%d+)%.(%d+)%.(%d+)$"
+local ipv4_format = "^%d+%.%d+%.%d+%.%d+$"
+local ipv6_format = "^%x+:%x+:%x+:%x+:%x+:%x+:%x+:%x+$"
 
 local function splitAddress(address)
-	local num1, num2, num3, num4 = address:match(ipv4_format)
-	return {
-		tonumber(num1),
-		tonumber(num2),
-		tonumber(num3),
-		tonumber(num4)
-	}
+	local sections = {}
+
+	if address:match(ipv4_format) then
+		-- Standard ipv4 address
+		for section in address:gmatch("%d+") do
+			table.insert(sections, tonumber(section))
+		end
+
+	elseif address:match(ipv6_format) then
+		-- Standard ipv6 address
+		for section in address:gmatch("%x+") do
+			table.insert(sections, tonumber(section, 16))
+		end
+
+	else
+		-- Shortened ipv6 address
+		-- 1. Add the sections before the double colon
+		local before_colons_count = 0
+		for section in address:match("(.*)::"):gmatch("%x+") do
+			table.insert(sections, tonumber(section, 16))
+			before_colons_count = before_colons_count + 1
+		end
+
+		local after_colons = {}
+		for part in address:match("::(.*)"):gmatch("%x+") do
+			table.insert(after_colons, tonumber(part, 16))
+		end
+
+		-- 2. Fill in with zeros that the double colon omits
+		for _=1, 8-(before_colons_count + #after_colons) do
+			table.insert(sections, 0)
+		end
+
+		-- 3. Add in the sections after the double colon
+		for _, section in ipairs(after_colons) do
+			table.insert(sections, section)
+		end
+	end
+
+	return sections
 end
 
 local function countAddressesBetween(address1, address2)
 	local parts1 = splitAddress(address1)
 	local parts2 = splitAddress(address2)
 
+	local section_size
+	if address1:match(ipv4_format) then
+		section_size = 256
+	else
+		section_size = 65535
+	end
+
 	local count = 0
 	local multiplier = 1
-	for i=4, 1, -1 do
+	for i=#parts1, 1, -1 do
 		count = count + (parts2[i] - parts1[i]) * multiplier
-		multiplier = multiplier * 256
+		multiplier = multiplier * section_size
 	end
 	return count
 end
@@ -30,6 +71,11 @@ end
 -- assert(countAddressesBetween("10.0.0.0", "10.0.1.0") == 256)
 -- assert(countAddressesBetween("20.0.0.10", "20.0.1.0") == 246)
 -- assert(countAddressesBetween("20.1.0.23", "21.1.0.24") == 16777217)
+-- assert(countAddressesBetween("20:0:0:0:0:0:0:0", "20:0:0:0:0:0:0:32") == 50)
+-- assert(countAddressesBetween("20::", "20:0:0:0:0:0:0:32") == 50)
+-- assert(countAddressesBetween("20::", "20::32") == 50)
+-- assert(countAddressesBetween("20:0:0:0:0:0:0:0", "20:0:0:0:0:0:1:0") == 65535)
+-- assert(countAddressesBetween("20:0:0:0:0:0:0:10", "20:0:0:0:0:0:1:0") == 65519)
 
 local address1, address2 = ...
 if not (address1 and address2) then
