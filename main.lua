@@ -56,8 +56,8 @@ end
 ---@param address2 string higher address
 ---@return number
 local function countAddressesBetween(address1, address2)
-	local parts1 = splitAddress(address1)
-	local parts2 = splitAddress(address2)
+	local sections1 = splitAddress(address1)
+	local sections2 = splitAddress(address2)
 
 	local section_size
 	if address1:match(ipv4_format) then
@@ -68,8 +68,8 @@ local function countAddressesBetween(address1, address2)
 
 	local count = 0
 	local multiplier = 1
-	for i=#parts1, 1, -1 do
-		count = count + (parts2[i] - parts1[i]) * multiplier
+	for i=#sections1, 1, -1 do
+		count = count + (sections2[i] - sections1[i]) * multiplier
 		multiplier = multiplier * section_size
 	end
 	return count
